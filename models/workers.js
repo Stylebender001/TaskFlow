@@ -6,8 +6,21 @@ const workerSchema = new mongoose.Schema({
     ref: "Users",
     required: true,
   },
-  skills: { type: [String], required: true },
+  skills: [
+    {
+      skill: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Skills",
+        required: true,
+      },
+      level: { type: Number, min: 1, max: 5, required: true },
+    },
+  ],
   rating: { type: Number, default: 0 },
+  totalReviews: {
+    type: Number,
+    default: 0,
+  },
   location: { type: String, required: true },
 });
 

@@ -20,7 +20,8 @@ const jobSchema = new mongoose.Schema({
   },
   skillsRequired: [
     {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Skills",
       required: true,
     },
   ],
@@ -30,23 +31,30 @@ const jobSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["open", "assigned", "completed"],
+    enum: ["open", "assigned", "In-progress", "completed", "cancelled"],
     default: "open",
   },
-  maxWorkers: {
+  workersNeeded: {
     type: Number,
     default: 1,
   },
   assignedWorkers: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Users",
+      worker: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Users",
+        required: true,
+      },
+      agreedPrice: {
+        type: Number,
+        required: true,
+      },
+      assignedAt: {
+        type: Date,
+        default: Date.now,
+      },
     },
   ],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
 });
 
 export default mongoose.model("Jobs", jobSchema);

@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
-
-const applicationSchema = new mongoose.Schema({
+const reviewSchema = new mongoose.Schema({
   job: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Jobs",
     required: true,
+    unique: true,
   },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
@@ -16,17 +16,19 @@ const applicationSchema = new mongoose.Schema({
     ref: "Users",
     required: true,
   },
-  proposedPrice: { type: Number, required: true },
-  message: String,
-  status: {
-    type: String,
-    enum: ["pending", "accepted", "rejected", "cancelled"],
-    default: "pending",
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    required: true,
   },
-  appliedAt: {
+  comment: {
+    type: String,
+    maxlength: 500,
+  },
+  createdAt: {
     type: Date,
     default: Date.now,
   },
 });
-
-export default mongoose.model("Applications", applicationSchema);
+export default mongoose.model("Reviews", reviewSchema);
