@@ -49,15 +49,6 @@ router.put("/setup", auth, worker, async (req, res) => {
   updatedWorker.skills = req.body.skills ?? updatedWorker.skills;
   updatedWorker.description = req.body.description ?? updatedWorker.description;
   updatedWorker.location = req.body.location ?? updatedWorker.location;
-  //   { user: userId },
-  //   {
-  //     user: userId,
-  //     skills: req.body.skills,
-  //     description: req.body.description,
-  //     location: req.body.location,
-  //   },
-  //   { new: true }
-  // );
   res.send(updatedWorker);
 });
 

@@ -284,7 +284,6 @@ router.put("/applications/:appId/reject", auth, worker, async (req, res) => {
 });
 
 //Job Progress
-
 router.put("/:jobId/start", auth, worker, async (req, res) => {
   const job = await Jobs.findById(req.params.jobId);
   if (!job) return res.status(404).send("Job not found");
@@ -309,7 +308,6 @@ router.put("/:jobId/complete", auth, customer, async (req, res) => {
 });
 
 // Customer reviews and rates the worker
-
 router.post("/:jobId/review", auth, customer, async (req, res) => {
   const { rating, comment } = req.body;
   const job = await Jobs.findById(req.params.jobId);
