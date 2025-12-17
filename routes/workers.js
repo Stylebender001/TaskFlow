@@ -13,11 +13,16 @@ router.post("/setup", auth, worker, async (req, res) => {
   if (worker) return res.status(400).send("Worker profile already existed");
   const { error } = validateWorker(req.body);
   if (error) return res.status(400).send(error.details[0].message);
+  const skills = req.body.skills.map((s) => ({
+    skill: s.skill,
+    level: s.level,
+  }));
 
   worker = new Workers({
     user: userId,
-    skills: req.body.skills,
+    skills,
     location: req.body.location,
+    description: req.body.description,
   });
 
   await worker.save();
@@ -40,15 +45,19 @@ router.put("/setup", auth, worker, async (req, res) => {
   const userId = req.user._id;
   const { error } = validateWorker(req.body);
   if (error) return res.status(400).send(error.details[0].message);
-  const updatedWorker = await Workers.findOneAndUpdate(
-    { user: userId },
-    {
-      user: userId,
-      skills: req.body.skills,
-      location: req.body.location,
-    },
-    { new: true }
-  );
+  const updatedWorker = await Workers.findById(userId);
+  updatedWorker.skills = req.body.skills ?? updatedWorker.skills;
+  updatedWorker.description = req.body.description ?? updatedWorker.description;
+  updatedWorker.location = req.body.location ?? updatedWorker.location;
+  //   { user: userId },
+  //   {
+  //     user: userId,
+  //     skills: req.body.skills,
+  //     description: req.body.description,
+  //     location: req.body.location,
+  //   },
+  //   { new: true }
+  // );
   res.send(updatedWorker);
 });
 

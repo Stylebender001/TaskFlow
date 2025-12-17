@@ -18,7 +18,7 @@ router.post("/post", auth, customer, async (req, res) => {
     description: req.body.description,
     skillsRequired: req.body.skillsRequired,
     location: req.body.location,
-    workersNeeded: req.body.workersNeeded || 1,
+    workersNeeded: req.body.workersNeeded,
   });
   await job.save();
   res.send(job);
@@ -62,6 +62,7 @@ router.get("/", auth, worker, async (req, res) => {
     status: JOB_STATUS.OPEN,
     skillsRequired: { $in: workerProfile.skills.map((s) => s.skill) },
   })
+    .select("-assignedWorkers")
     .skip((page - 1) * limit)
     .limit(parseInt(limit));
 
@@ -124,27 +125,76 @@ router.post("/:jobId/cancel", auth, worker, async (req, res) => {
 router.get("/:jobId/applicants", auth, customer, async (req, res) => {
   const job = await Jobs.findById(req.params.jobId);
   if (!job) return res.status(404).send("Job not found");
-  if (job.customer.toString() !== req.user._id)
+
+  if (job.customer.toString() !== req.user._id.toString())
     return res.status(403).send("Access Denied");
 
-  const applicants = await Applications.find({ job: job._id }).populate(
-    "worker"
-  );
-  const ranked = applicants.map((app) => {
-    const wp = app.worker;
-    let skillScore = wp.skills.reduce(
-      (sum, s) =>
-        job.skillsRequired.includes(s.skill.toString())
-          ? sum + s.level * 2
-          : sum,
-      0
-    );
-    return {
+  const applicants = await Applications.find({ job: job._id });
+
+  if (!applicants.length) return res.send([]);
+
+  const lowestPrice = Math.min(...applicants.map((a) => a.proposedPrice));
+
+  const ranked = [];
+
+  for (const app of applicants) {
+    const worker = await Workers.findOne({ user: app.worker });
+    console.log("App worker:", app.worker);
+    console.log("Worker found:", worker);
+    if (!worker) continue;
+
+    // 1. Skill score
+    let matched = 0;
+    let levelSum = 0;
+
+    worker.skills.forEach((s) => {
+      if (job.skillsRequired.includes(s.skill.toString())) {
+        matched++;
+        levelSum += s.level;
+      }
+    });
+
+    const avgLevel = matched ? levelSum / matched : 0;
+    const skillScore =
+      job.skillsRequired.length > 0
+        ? (matched / job.skillsRequired.length) * avgLevel * 20
+        : 0;
+
+    // 2. Rating score
+    const ratingScore = worker.totalReviews ? (worker.rating / 5) * 100 : 60;
+
+    // 3. Price score
+    const priceScore = Math.min((lowestPrice / app.proposedPrice) * 100, 100);
+
+    // 4. Reliability score
+    const reliabilityScore = worker.totalJobs
+      ? 100 - (worker.cancelledJobs / worker.totalJobs) * 100
+      : 80;
+
+    // 5. Activity score
+    const daysAgo = (Date.now() - app.appliedAt) / (1000 * 60 * 60 * 24);
+
+    let activityScore = 40;
+    if (daysAgo <= 1) activityScore = 100;
+    else if (daysAgo <= 3) activityScore = 80;
+    else if (daysAgo <= 7) activityScore = 60;
+
+    const totalScore =
+      skillScore * 0.4 +
+      ratingScore * 0.25 +
+      priceScore * 0.2 +
+      reliabilityScore * 0.1 +
+      activityScore * 0.05;
+
+    ranked.push({
       application: app,
-      score: skillScore + wp.rating,
-    };
-  });
-  ranked.sort((a, b) => b.score - a.score);
+      worker,
+      totalScore,
+    });
+  }
+
+  ranked.sort((a, b) => b.totalScore - a.totalScore);
+
   res.send(ranked);
 });
 
@@ -154,7 +204,7 @@ router.put(
   auth,
   customer,
   async (req, res) => {
-    const { counterPrice } = req.body; // optional
+    const { counterPrice } = req.body;
 
     const job = await Jobs.findById(req.params.jobId);
     if (!job) return res.status(404).send("Job not found");
@@ -172,8 +222,6 @@ router.put(
     application.finalPrice = counterPrice ?? application.proposedPrice;
 
     await application.save();
-
-    job.status = JOB_STATUS.AWAITING_CONFIRMATION;
     await job.save();
 
     res.send({
@@ -185,7 +233,7 @@ router.put(
   }
 );
 
-// Worker confirms the assignment
+// Worker confirms or cancels the assignment
 
 router.put("/applications/:appId/confirm", auth, worker, async (req, res) => {
   const application = await Applications.findById(req.params.appId);
@@ -195,11 +243,9 @@ router.put("/applications/:appId/confirm", auth, worker, async (req, res) => {
     return res.status(403).send("Access denied");
 
   if (application.status !== "selected")
-    return res.status(400).send("Job not selected yet");
-
+    return res.status(400).send("No request received or the request expired");
   const job = await Jobs.findById(application.job);
-
-  application.status = "confirmed";
+  application.status = "accepted";
   await application.save();
 
   job.assignedWorkers.push({
@@ -212,12 +258,29 @@ router.put("/applications/:appId/confirm", auth, worker, async (req, res) => {
 
     await Applications.updateMany(
       { job: job._id, _id: { $ne: application._id } },
-      { status: "rejected" }
+      { status: "cancelled" }
     );
   }
 
   await job.save();
   res.send({ message: "Job confirmed successfully" });
+});
+
+//Worker cancals the application
+router.put("/applications/:appId/reject", auth, worker, async (req, res) => {
+  const application = await Applications.findById(req.params.appId);
+  if (!application) return res.status(404).send("Application not found");
+
+  if (application.worker.toString() !== req.user._id.toString())
+    return res.status(403).send("Access denied");
+
+  if (application.status !== "selected")
+    return res.status(400).send("Job not selected yet");
+
+  const job = await Jobs.findById(application.job);
+  application.status = "rejected";
+  await application.save();
+  res.send({ message: "Application cancelled" });
 });
 
 //Job Progress
@@ -259,7 +322,7 @@ router.post("/:jobId/review", auth, customer, async (req, res) => {
       job: job._id,
       worker: assignedWorker.worker,
     });
-    if (existingReview) continue;
+    if (!existingReview) return res.status(400).send("Review already exists");
 
     const review = new Reviews({
       job: job._id,

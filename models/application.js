@@ -17,6 +17,7 @@ const applicationSchema = new mongoose.Schema({
     required: true,
   },
   proposedPrice: { type: Number, required: true },
+  finalPrice: { type: Number },
   message: String,
   status: {
     type: String,

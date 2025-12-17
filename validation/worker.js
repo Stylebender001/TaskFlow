@@ -1,10 +1,18 @@
 import Joi from "joi";
 
-export function validateWorker(body) {
+export function validateWorker(worker) {
   const schema = Joi.object({
-    skills: Joi.array().items(Joi.string()).min(1).required(),
-    location: Joi.string().min(3).required(),
+    skills: Joi.array()
+      .items(
+        Joi.object({
+          skill: Joi.string().required(),
+          level: Joi.number().min(1).max(5).required(),
+        })
+      )
+      .required(),
+    description: Joi.string().required(),
+    location: Joi.string().required(),
   });
 
-  return schema.validate(body);
+  return schema.validate(worker);
 }

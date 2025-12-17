@@ -16,6 +16,7 @@ const workerSchema = new mongoose.Schema({
       level: { type: Number, min: 1, max: 5, required: true },
     },
   ],
+  description: { type: String, required: true },
   rating: { type: Number, default: 0 },
   totalReviews: {
     type: Number,
