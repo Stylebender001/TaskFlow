@@ -6,8 +6,16 @@ import customers from "../routes/customers.js";
 import jobs from "../routes/jobs.js";
 import error from "../middleware/error.js";
 import admin from "../routes/admin.js";
+import cors from "cors";
 
 export default function (app) {
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      credentials: true,
+    })
+  );
   app.use(express.json());
   app.use("/api/signup", users);
   app.use("/api/login", auth);

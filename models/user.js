@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
     enum: ["customer", "worker", "admin"],
     default: "customer",
   },
+  profileCompleted: { type: Boolean, default: false },
 });
 
 userSchema.methods.generateAuthToken = function () {

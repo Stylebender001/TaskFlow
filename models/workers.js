@@ -6,6 +6,7 @@ const workerSchema = new mongoose.Schema({
     ref: "Users",
     required: true,
   },
+  fullname: { type: String, required: true },
   skills: [
     {
       skill: {
@@ -22,7 +23,11 @@ const workerSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
-  location: { type: String, required: true },
+  location: {
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    country: { type: String, required: true },
+  },
 });
 
 export default mongoose.model("Workers", workerSchema);

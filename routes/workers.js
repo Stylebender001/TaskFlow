@@ -3,6 +3,7 @@ import auth from "../middleware/auth.js";
 import worker from "../middleware/workers.js";
 import Workers from "../models/workers.js";
 import { validateWorker } from "../validation/worker.js";
+import Users from "../models/user.js";
 const router = express.Router();
 
 router.post("/setup", auth, worker, async (req, res) => {
@@ -17,16 +18,28 @@ router.post("/setup", auth, worker, async (req, res) => {
     skill: s.skill,
     level: s.level,
   }));
+  const location = {
+    city: req.body.location.city,
+    state: req.body.location.state,
+    country: req.body.location.country,
+  };
 
   worker = new Workers({
     user: userId,
     skills,
-    location: req.body.location,
+    location,
     description: req.body.description,
+  });
+  await Users.findByIdAndUpdate(userId, {
+    profileCompleted: true,
   });
 
   await worker.save();
   res.send(worker);
+  res.json({
+    worker,
+    profileCompleted: true,
+  });
 });
 
 router.get("/profile", auth, worker, async (req, res) => {

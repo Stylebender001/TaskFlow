@@ -1,4 +1,5 @@
 import express from "express";
+import Users from "../models/user.js";
 import Customers from "../models/customer.js";
 import customer from "../middleware/customer.js";
 import auth from "../middleware/auth.js";
@@ -13,13 +14,28 @@ router.post("/setup", auth, customer, async (req, res) => {
   if (customer) return res.status(403).send("Customer Profile already exists.");
   const { error } = validateCustomer(req.body);
   if (error) return res.status(403).send(error.details[0].message);
+  const location = {
+    city: req.body.location.city,
+    state: req.body.location.state,
+    country: req.body.location.country,
+  };
   customer = new Customers({
     user: userId,
-    location: req.body.location,
+    fullName: req.body.fullName,
+    location,
     phoneNo: req.body.phoneNo,
   });
+
+  await Users.findByIdAndUpdate(userId, {
+    profileCompleted: true,
+  });
+
   await customer.save();
   res.send(customer);
+  res.json({
+    customer,
+    profileCompleted: true,
+  });
 });
 
 router.get("/profile", auth, customer, async (req, res) => {
