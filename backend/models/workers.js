@@ -6,7 +6,7 @@ const workerSchema = new mongoose.Schema({
     ref: "Users",
     required: true,
   },
-  fullname: { type: String, required: true },
+  fullName: { type: String, required: true },
   skills: [
     {
       skill: {

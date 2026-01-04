@@ -18,9 +18,9 @@ router.post("/skills", auth, admin, async (req, res) => {
   await skill.save();
   res.send(skill);
 });
-router.get("/all-skills", auth, admin, async (req, res) => {
+router.get("/all-skills", auth, async (req, res) => {
   const skills = await Skills.find();
-  res.send(skills);
+  res.json(skills);
 });
 
 export default router;

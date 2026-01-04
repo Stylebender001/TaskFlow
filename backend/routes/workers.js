@@ -26,6 +26,7 @@ router.post("/setup", auth, worker, async (req, res) => {
 
   worker = new Workers({
     user: userId,
+    fullName: req.body.fullName,
     skills,
     location,
     description: req.body.description,

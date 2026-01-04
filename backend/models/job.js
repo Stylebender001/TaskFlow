@@ -39,6 +39,8 @@ const jobSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
+  starttime: { type: Date, required: true },
+  endtime: { type: Date, required: true },
   assignedWorkers: [
     {
       worker: {
