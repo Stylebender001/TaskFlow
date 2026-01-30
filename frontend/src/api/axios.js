@@ -4,7 +4,27 @@ const api = axios.create({
   baseURL: "http://localhost:4000/api",
 });
 
-const token = localStorage.getItem("token");
-if (token) api.defaults.headers.common["x-auth-token"] = token;
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers["x-auth-token"] = token;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.clear();
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

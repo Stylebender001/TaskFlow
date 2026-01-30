@@ -21,7 +21,10 @@ router.post("/post", auth, customer, async (req, res) => {
     workersNeeded: req.body.workersNeeded,
   });
   await job.save();
-  res.send(job);
+  res.status(201).json({
+    message: "Job created successfully",
+    job,
+  });
 });
 
 // Customer updates a job

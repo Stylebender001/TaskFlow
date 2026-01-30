@@ -7,6 +7,10 @@ import Users from "../models/user.js";
 const router = express.Router();
 
 router.post("/setup", auth, worker, async (req, res) => {
+  console.log("🔥 HIT WORKER SETUP");
+  console.log("BODY:", req.body);
+  console.log("USER:", req.user);
+
   if (req.user.role !== "worker")
     return res.status(403).send("Access denied — not a worker.");
   const userId = req.user._id;
@@ -36,8 +40,8 @@ router.post("/setup", auth, worker, async (req, res) => {
   });
 
   await worker.save();
-  res.send(worker);
   res.json({
+    message: "Worker profile created successfully",
     worker,
     profileCompleted: true,
   });
@@ -52,18 +56,30 @@ router.get("/profile", auth, worker, async (req, res) => {
   );
   res.send(workerProfile);
 });
+router.put("/setup", auth, worker, async (req, res, next) => {
+  try {
+    if (req.user.role !== "worker")
+      return res.status(403).send("Access denied — not a worker.");
 
-router.put("/setup", auth, worker, async (req, res) => {
-  if (req.user.role != "worker")
-    return res.status(403).send("Access denied — not a worker.");
-  const userId = req.user._id;
-  const { error } = validateWorker(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
-  const updatedWorker = await Workers.findById(userId);
-  updatedWorker.skills = req.body.skills ?? updatedWorker.skills;
-  updatedWorker.description = req.body.description ?? updatedWorker.description;
-  updatedWorker.location = req.body.location ?? updatedWorker.location;
-  res.send(updatedWorker);
+    const userId = req.user._id;
+
+    const { error } = validateWorker(req.body);
+    if (error) return res.status(400).send(error.details[0].message);
+
+    const updatedWorker = await Workers.findOne({ user: userId });
+    if (!updatedWorker) return res.status(404).send("Worker profile not found");
+
+    updatedWorker.skills = req.body.skills ?? updatedWorker.skills;
+    updatedWorker.description =
+      req.body.description ?? updatedWorker.description;
+    updatedWorker.location = req.body.location ?? updatedWorker.location;
+
+    await updatedWorker.save();
+
+    res.send(updatedWorker);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

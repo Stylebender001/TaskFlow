@@ -14,14 +14,14 @@ export default function (app) {
       origin: "http://localhost:5173",
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
-    })
+    }),
   );
   app.use(express.json());
+  app.use(error);
   app.use("/api/signup", users);
   app.use("/api/login", auth);
   app.use("/api/workers", workers);
   app.use("/api/customers", customers);
   app.use("/api/jobs", jobs);
   app.use("/api/admin", admin);
-  app.use(error);
 }
